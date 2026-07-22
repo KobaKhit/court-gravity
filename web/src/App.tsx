@@ -265,6 +265,9 @@ export default function App() {
       </div>
       <div className="disclaimer">
         Gravity ratings derived from 2025–26 regular-season production.
+        <a className="site-credit" href="https://kobakhit.com/" target="_blank" rel="noreferrer">
+          made by kobakhit
+        </a>
       </div>
 
       {show2d && (
