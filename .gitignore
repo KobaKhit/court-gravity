@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.venv/
+.venv-manim/
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+web/node_modules/
+web/dist/
+media/
+data/sanity/
+data/parity/
+data/synthetic/
+.manim/
+*.mp4
+.DS_Store

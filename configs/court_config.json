@@ -1,0 +1,28 @@
+{
+  "units": "ft",
+  "half_court": {
+    "length": 47.0,
+    "width": 50.0
+  },
+  "origin": "hoop",
+  "rim": {
+    "x": 0.0,
+    "y": 0.0,
+    "diameter_ft": 1.5,
+    "backboard_offset_ft": 4.0
+  },
+  "paint": {
+    "width": 16.0,
+    "length": 19.0
+  },
+  "three_point": {
+    "arc_radius": 23.75,
+    "corner_distance": 22.0
+  },
+  "default_sigma_ft": 5.0,
+  "grid": {
+    "nx": 201,
+    "ny": 189
+  },
+  "scene_scale": 0.1
+}

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "court-gravity"
+version = "0.1.0"
+description = "Basketball court gravity field visualization — shared NumPy core"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "scipy>=1.10",
+  "matplotlib>=3.7",
+  "Pillow>=9.0",
+]
+
+[project.optional-dependencies]
+video = ["manim>=0.18.0"]
+preview = ["imageio-ffmpeg>=0.6.0"]
+dev = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+include = ["core*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

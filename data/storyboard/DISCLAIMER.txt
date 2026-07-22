@@ -1,0 +1,1 @@
+Pedagogical Gaussian / softened-potential model inspired by pitch-control and NBA Gravity framing — NOT the proprietary NBA Gravity metric.

@@ -1,0 +1,13 @@
+{
+  "background": "#111111",
+  "well": "#1C758A",
+  "well_deep": "#2C5D72",
+  "flat": "#050508",
+  "peak": "#F0AC5F",
+  "peak_bright": "#FFFF00",
+  "accent_ball": "#49A88F",
+  "offense_dot": "#58C4DD",
+  "defense_dot": "#FC6255",
+  "text": "#FFFFFF",
+  "secondary": "#888888"
+}
