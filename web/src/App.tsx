@@ -184,7 +184,8 @@ export default function App() {
 
   return (
     <main className={`app-shell ${mobile.isNarrow ? 'is-mobile' : ''}`}>
-      {!mobile.isNarrow && <Leva collapsed oneLineLabels />}
+      {/* Always mount Leva: omitting it still leaves useControls' default panel visible. */}
+      <Leva collapsed oneLineLabels hidden={mobile.isNarrow} />
       <div className="overlay-title">
         <h1>COURT <span>GRAVITY</span></h1>
         <p>See how every player bends space, pulls defenders, and creates the next open shot.</p>

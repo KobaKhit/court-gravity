@@ -18,3 +18,4 @@ data/synthetic/
 data/storyboard/narration/
 .env
 .DS_Store
+docs/gif-frames/
