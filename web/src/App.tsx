@@ -223,12 +223,14 @@ export default function App() {
         >
           Top
         </button>
-        <button
-          className={cameraPreset === 'sideline' ? 'active' : ''}
-          onClick={() => setCameraPreset('sideline')}
-        >
-          Side
-        </button>
+        {!mobile.isNarrow && (
+          <button
+            className={cameraPreset === 'sideline' ? 'active' : ''}
+            onClick={() => setCameraPreset('sideline')}
+          >
+            Side
+          </button>
+        )}
       </div>
       <div className="overlay-actions">
         <button className="about-link explainer-link" onClick={() => setShowExplainer(true)}>
@@ -315,13 +317,18 @@ export default function App() {
           dpr={canvasDpr}
           gl={{ antialias: !mobile.isMobile, toneMappingExposure: 1.15 }}
           camera={{
-            position: mobile.isNarrow ? [0, 47, 78] : [0, 47, 108],
-            up: [-1, 0, 0],
-            fov: mobile.isNarrow ? 48 : 42,
+            position: mobile.isNarrow ? [0, 47, 102] : [0, 47, 108],
+            up: mobile.isNarrow ? [0, 1, 0] : [-1, 0, 0],
+            fov: mobile.isNarrow ? 52 : 42,
             near: 0.1,
             far: 500,
           }}
-          style={{ position: 'absolute', inset: 0, touchAction: 'none' }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            // Let the page scroll on phones; orbit drag is disabled in CameraRig.
+            touchAction: mobile.isNarrow ? 'pan-y' : 'none',
+          }}
         >
           <color attach="background" args={['#030509']} />
           <fog attach="fog" args={['#030509', 105, 190]} />
@@ -375,7 +382,7 @@ export default function App() {
               />
             )}
           </Suspense>
-          <CameraRig preset={cameraPreset} mobile={mobile.isMobile} />
+          <CameraRig preset={cameraPreset} mobile={mobile.isNarrow} />
         </Canvas>
       )}
 

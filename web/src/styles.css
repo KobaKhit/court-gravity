@@ -634,25 +634,16 @@ html, body, #root {
   }
 
   .camera-presets {
-    left: max(12px, env(safe-area-inset-left));
-    top: auto;
-    bottom: calc(118px + env(safe-area-inset-bottom));
-  }
-
-  .camera-presets button {
-    min-height: 36px;
-    min-width: 52px;
-    padding: 8px 12px;
-    font-size: 0.68rem;
+    display: none;
   }
 
   .overlay-actions {
     top: auto;
     right: max(12px, env(safe-area-inset-right));
-    bottom: calc(118px + env(safe-area-inset-bottom));
+    bottom: calc(72px + env(safe-area-inset-bottom));
     left: auto;
     width: auto;
-    max-width: calc(100vw - 140px);
+    max-width: calc(100vw - 24px);
     transform: none;
     justify-content: flex-end;
     flex-wrap: wrap;

@@ -20,10 +20,10 @@ const PRESETS: Record<CameraPreset, { position: THREE.Vector3; target: THREE.Vec
     up: new THREE.Vector3(0, 0, 1),
   },
   portrait: {
-    // Closer top-down framing for portrait phones.
-    position: new THREE.Vector3(0, 47, 78),
-    target: new THREE.Vector3(0, 47, 4),
-    up: new THREE.Vector3(-1, 0, 0),
+    // Top-down with the court length vertical on a phone screen.
+    position: new THREE.Vector3(0, 47, 102),
+    target: new THREE.Vector3(0, 47, 0),
+    up: new THREE.Vector3(0, 1, 0),
   },
 }
 
@@ -44,7 +44,18 @@ export function CameraRig({
   }, [camera, preset])
 
   useFrame((_, dt) => {
-    if (!transitioning.current || !controls.current) return
+    if (!controls.current) return
+    if (mobile) {
+      // Keep the locked mobile camera glued to the portrait framing.
+      camera.position.copy(destination.position)
+      camera.up.copy(destination.up)
+      controls.current.target.copy(destination.target)
+      camera.lookAt(controls.current.target)
+      controls.current.update()
+      transitioning.current = false
+      return
+    }
+    if (!transitioning.current) return
     const alpha = 1 - Math.exp(-dt * 4.2)
     camera.position.lerp(destination.position, alpha)
     camera.up.lerp(destination.up, alpha).normalize()
@@ -67,20 +78,26 @@ export function CameraRig({
     <OrbitControls
       ref={controls}
       target={[0, 47, 0]}
-      enableDamping
-      dampingFactor={mobile ? 0.08 : 0.055}
+      enableDamping={!mobile}
+      dampingFactor={0.055}
+      enableRotate={!mobile}
       enablePan={!mobile}
-      minDistance={mobile ? 38 : 30}
-      maxDistance={mobile ? 160 : 240}
+      enableZoom={!mobile}
+      minDistance={mobile ? 90 : 30}
+      maxDistance={mobile ? 120 : 240}
       minPolarAngle={Math.PI * 0.04}
       maxPolarAngle={Math.PI * 0.48}
       screenSpacePanning={false}
-      touches={{
-        ONE: THREE.TOUCH.ROTATE,
-        TWO: THREE.TOUCH.DOLLY_PAN,
-      }}
+      touches={
+        mobile
+          ? undefined
+          : {
+              ONE: THREE.TOUCH.ROTATE,
+              TWO: THREE.TOUCH.DOLLY_PAN,
+            }
+      }
       onStart={() => {
-        transitioning.current = false
+        if (!mobile) transitioning.current = false
       }}
     />
   )
