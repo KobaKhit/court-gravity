@@ -11,8 +11,10 @@ import { FieldMode, KernelType } from './fieldMath'
 import { GAME_DURATION, POSSESSION_COUNT, POSSESSION_SECONDS, gameStateAtTime } from './gameSimulation'
 import { getPlayerProfile, gravityRatings } from './playerProfiles'
 import { AboutPage } from './AboutPage'
+import { useMobileProfile } from './useMobileProfile'
 
 export default function App() {
+  const mobile = useMobileProfile()
   const [t, setT] = useState(0)
   const [marbleKey, setMarbleKey] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
@@ -22,6 +24,8 @@ export default function App() {
     typeof window !== 'undefined' && window.location.hash === '#about' ? 'about' : 'court',
   )
   const [showExplainer, setShowExplainer] = useState(false)
+  const [mobileViewDefaulted, setMobileViewDefaulted] = useState(false)
+  const [viewOverride, setViewOverride] = useState<'3d' | '2d' | 'both' | null>(null)
 
   const controls = useControls('Field', {
     defense: { value: 0.55, min: 0, max: 1, step: 0.01 },
@@ -30,7 +34,7 @@ export default function App() {
     mode: { options: ['net', 'offense', 'defense'] as FieldMode[] },
     kernel: { options: ['gaussian', 'softened'] as KernelType[] },
     zScale: { value: 1.55, min: 0.15, max: 4.0, step: 0.05 },
-    view: { options: ['3d', '2d', 'both'] },
+    view: { options: ['3d', '2d', 'both'] as const },
     marble: false,
     resetMarble: button(() => setMarbleKey((k) => k + 1)),
   })
@@ -50,6 +54,13 @@ export default function App() {
     victorWembanyama: true,
     harrisonBarnes: true,
   })
+
+  useEffect(() => {
+    if (!mobile.isNarrow || mobileViewDefaulted) return
+    setViewOverride('3d')
+    setCameraPreset('portrait')
+    setMobileViewDefaulted(true)
+  }, [mobile.isNarrow, mobileViewDefaulted])
 
   useEffect(() => {
     if (!showExplainer) return
@@ -160,14 +171,20 @@ export default function App() {
     )
   }
 
-  const show3d = controls.view === '3d' || controls.view === 'both'
-  const show2d = controls.view === '2d' || controls.view === 'both'
+  // On mobile, avoid rendering both 3D + inset heatmap by default.
+  const selectedView = (viewOverride ?? controls.view) as '3d' | '2d' | 'both'
+  const effectiveView = mobile.isNarrow && selectedView === 'both' ? '3d' : selectedView
+  const show3d = effectiveView === '3d' || effectiveView === 'both'
+  const show2d = effectiveView === '2d' || effectiveView === 'both'
   const gameClock = game.shotClock == null ? '—' : Math.max(0, game.shotClock).toFixed(1)
   const phaseLabel = game.phase === 'DeadBall' ? 'Made · Dead Ball' : game.phase
+  const meshSegments = mobile.isMobile ? 96 : 200
+  const enableShadows = !mobile.isMobile && !mobile.reduceMotion
+  const canvasDpr: [number, number] = mobile.isMobile ? [1, 1.15] : [1, 1.75]
 
   return (
-    <main className="app-shell">
-      <Leva collapsed oneLineLabels />
+    <main className={`app-shell ${mobile.isNarrow ? 'is-mobile' : ''}`}>
+      {!mobile.isNarrow && <Leva collapsed oneLineLabels />}
       <div className="overlay-title">
         <h1>COURT <span>GRAVITY</span></h1>
         <p>See how every player bends space, pulls defenders, and creates the next open shot.</p>
@@ -190,15 +207,27 @@ export default function App() {
           </b>
         )}
       </div>
+      <div className="mobile-scorechip" aria-label="Score and possession">
+        <strong>LAL {game.blueScore}</strong>
+        <span>·</span>
+        <strong>SAS {game.redScore}</strong>
+        <em>{gameClock}</em>
+        <small>
+          P{game.possession + 1}/6 · {phaseLabel}
+        </small>
+      </div>
       <div className="camera-presets" aria-label="Camera angle">
-        <button className={cameraPreset === 'top' ? 'active' : ''} onClick={() => setCameraPreset('top')}>
-          Top Down
+        <button
+          className={cameraPreset === 'top' || cameraPreset === 'portrait' ? 'active' : ''}
+          onClick={() => setCameraPreset(mobile.isNarrow ? 'portrait' : 'top')}
+        >
+          Top
         </button>
         <button
           className={cameraPreset === 'sideline' ? 'active' : ''}
           onClick={() => setCameraPreset('sideline')}
         >
-          Sideline
+          Side
         </button>
       </div>
       <div className="overlay-actions">
@@ -276,27 +305,33 @@ export default function App() {
           mode={controls.mode as FieldMode}
           kernel={controls.kernel as KernelType}
           expanded={!show3d}
+          mobile={mobile.isMobile}
         />
       )}
 
       {show3d && (
         <Canvas
-          shadows
-          dpr={[1, 1.75]}
-          gl={{ antialias: true, toneMappingExposure: 1.15 }}
+          shadows={enableShadows}
+          dpr={canvasDpr}
+          gl={{ antialias: !mobile.isMobile, toneMappingExposure: 1.15 }}
           camera={{
-            position: [0, 47, 108],
+            position: mobile.isNarrow ? [0, 47, 78] : [0, 47, 108],
             up: [-1, 0, 0],
-            fov: 42,
+            fov: mobile.isNarrow ? 48 : 42,
             near: 0.1,
             far: 500,
           }}
-          style={{ position: 'absolute', inset: 0 }}
+          style={{ position: 'absolute', inset: 0, touchAction: 'none' }}
         >
           <color attach="background" args={['#030509']} />
           <fog attach="fog" args={['#030509', 105, 190]} />
-          <ambientLight intensity={0.26} />
-          <directionalLight position={[-18, -8, 35]} intensity={2.2} color="#d9edff" castShadow />
+          <ambientLight intensity={mobile.isMobile ? 0.34 : 0.26} />
+          <directionalLight
+            position={[-18, -8, 35]}
+            intensity={mobile.isMobile ? 1.7 : 2.2}
+            color="#d9edff"
+            castShadow={enableShadows}
+          />
           <Suspense fallback={null}>
             <Arena />
             <CourtMesh
@@ -304,6 +339,7 @@ export default function App() {
               mode={controls.mode as FieldMode}
               kernel={controls.kernel as KernelType}
               zScale={controls.zScale}
+              segments={meshSegments}
             />
             <MotionTrails
               time={t}
@@ -319,7 +355,7 @@ export default function App() {
               zScale={controls.zScale}
               visibleProfileIds={visibleProfileIds}
               showImages={profileControls.showPlayerImages}
-              showStats={profileControls.showNamesAndStats}
+              showStats={profileControls.showNamesAndStats && !mobile.isNarrow}
             />
             <GameBall position={game.ball} />
             <Marble
@@ -328,16 +364,18 @@ export default function App() {
               enabled={controls.marble}
               resetKey={marbleKey}
             />
-            <ContactShadows
-              position={[0, 47, -6.1]}
-              opacity={0.28}
-              scale={108}
-              blur={2.4}
-              far={14}
-              color="#000000"
-            />
+            {enableShadows && (
+              <ContactShadows
+                position={[0, 47, -6.1]}
+                opacity={0.28}
+                scale={108}
+                blur={2.4}
+                far={14}
+                color="#000000"
+              />
+            )}
           </Suspense>
-          <CameraRig preset={cameraPreset} />
+          <CameraRig preset={cameraPreset} mobile={mobile.isMobile} />
         </Canvas>
       )}
 

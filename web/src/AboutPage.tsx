@@ -88,6 +88,10 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
   const floorBalance = smoothstep(5, 10, teammateDistance)
   const opportunity = coverageQuality * floorBalance
 
+  const scrollToChapter = (index: number) => {
+    sectionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <main className="about-shell">
       <header className="about-header">
@@ -103,6 +107,19 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
           <button onClick={() => setPlaying((value) => !value)}>{playing ? 'Pause motion' : 'Play motion'}</button>
         </div>
       </header>
+      <nav className="about-mobile-chapters" aria-label="Chapters">
+        {STEPS.map((item, index) => (
+          <button
+            key={item.label}
+            type="button"
+            className={index === activeStep ? 'active' : ''}
+            onClick={() => scrollToChapter(index)}
+          >
+            <i>{String(index + 1).padStart(2, '0')}</i>
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
       {showExplainer && (
         <div
           className="explainer-modal"

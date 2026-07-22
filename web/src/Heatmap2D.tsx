@@ -9,6 +9,7 @@ type Props = {
   width?: number
   height?: number
   expanded?: boolean
+  mobile?: boolean
 }
 
 const mix = (a: number, b: number, t: number) => a + (b - a) * t
@@ -17,89 +18,117 @@ const smoothstep = (edge0: number, edge1: number, value: number) => {
   return x * x * (3 - 2 * x)
 }
 
-export function Heatmap2D({ players, mode, kernel, width = 1128, height = 600, expanded = false }: Props) {
+export function Heatmap2D({
+  players,
+  mode,
+  kernel,
+  width,
+  height,
+  expanded = false,
+  mobile = false,
+}: Props) {
+  const canvasWidth = width ?? (mobile ? (expanded ? 720 : 360) : 1128)
+  const canvasHeight = height ?? (mobile ? (expanded ? 384 : 192) : 600)
   const ref = useRef<HTMLCanvasElement>(null)
+  const lastDraw = useRef(0)
 
   useEffect(() => {
     const canvas = ref.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    const nx = 72
-    const ny = 136
-    const offenseGrid = evaluateGrid(players, nx, ny, 'offense', kernel).Z
-    const defenseGrid = evaluateGrid(players, nx, ny, 'defense', kernel).Z
-    const img = ctx.createImageData(ny, nx)
-    const fixedScale = mode === 'net' ? 1.15 : 1.45
 
-    for (let screenY = 0; screenY < nx; screenY++) {
-      for (let screenX = 0; screenX < ny; screenX++) {
-        const xIndex = nx - 1 - screenY
-        const yIndex = screenX
-        const index = yIndex * nx + xIndex
-        const offense = Math.max(0, -offenseGrid[index])
-        const defense = Math.max(0, defenseGrid[index])
-        const net = mode === 'offense' ? offense : mode === 'defense' ? -defense : offense - defense
-        const offenseStrength = smoothstep(0.02, 0.68, Math.max(0, net) / fixedScale)
-        const defenseStrength = smoothstep(0.02, 0.68, Math.max(0, -net) / fixedScale)
-        const contested =
-          mode === 'net'
-            ? Math.min(1, Math.min(offense, defense) / fixedScale) *
-              (1 - Math.max(offenseStrength, defenseStrength))
-            : 0
-        const plank = Math.floor(screenY / 7) % 2
-        let r = expanded ? (plank ? 67 : 57) : 2
-        let g = expanded ? (plank ? 47 : 39) : 4
-        let b = expanded ? (plank ? 27 : 22) : 7
-        r = mix(r, 111, contested * 0.18)
-        g = mix(g, 117, contested * 0.18)
-        b = mix(b, 124, contested * 0.18)
-        r = mix(r, 38, offenseStrength * 0.72)
-        g = mix(g, 220, offenseStrength * 0.72)
-        b = mix(b, 255, offenseStrength * 0.72)
-        r = mix(r, 245, defenseStrength * 0.62)
-        g = mix(g, 52, defenseStrength * 0.62)
-        b = mix(b, 31, defenseStrength * 0.62)
-        const o = (screenY * ny + screenX) * 4
-        img.data[o] = r
-        img.data[o + 1] = g
-        img.data[o + 2] = b
-        img.data[o + 3] = 255
+    const draw = () => {
+      const nx = mobile ? 48 : 72
+      const ny = mobile ? 90 : 136
+      const offenseGrid = evaluateGrid(players, nx, ny, 'offense', kernel).Z
+      const defenseGrid = evaluateGrid(players, nx, ny, 'defense', kernel).Z
+      const img = ctx.createImageData(ny, nx)
+      const fixedScale = mode === 'net' ? 1.15 : 1.45
+
+      for (let screenY = 0; screenY < nx; screenY++) {
+        for (let screenX = 0; screenX < ny; screenX++) {
+          const xIndex = nx - 1 - screenY
+          const yIndex = screenX
+          const index = yIndex * nx + xIndex
+          const offense = Math.max(0, -offenseGrid[index])
+          const defense = Math.max(0, defenseGrid[index])
+          const net = mode === 'offense' ? offense : mode === 'defense' ? -defense : offense - defense
+          const offenseStrength = smoothstep(0.02, 0.68, Math.max(0, net) / fixedScale)
+          const defenseStrength = smoothstep(0.02, 0.68, Math.max(0, -net) / fixedScale)
+          const contested =
+            mode === 'net'
+              ? Math.min(1, Math.min(offense, defense) / fixedScale) *
+                (1 - Math.max(offenseStrength, defenseStrength))
+              : 0
+          const plank = Math.floor(screenY / 7) % 2
+          let r = expanded ? (plank ? 67 : 57) : 2
+          let g = expanded ? (plank ? 47 : 39) : 4
+          let b = expanded ? (plank ? 27 : 22) : 7
+          r = mix(r, 111, contested * 0.18)
+          g = mix(g, 117, contested * 0.18)
+          b = mix(b, 124, contested * 0.18)
+          r = mix(r, 38, offenseStrength * 0.72)
+          g = mix(g, 220, offenseStrength * 0.72)
+          b = mix(b, 255, offenseStrength * 0.72)
+          r = mix(r, 245, defenseStrength * 0.62)
+          g = mix(g, 52, defenseStrength * 0.62)
+          b = mix(b, 31, defenseStrength * 0.62)
+          const o = (screenY * ny + screenX) * 4
+          img.data[o] = r
+          img.data[o + 1] = g
+          img.data[o + 2] = b
+          img.data[o + 3] = 255
+        }
+      }
+
+      const off = document.createElement('canvas')
+      off.width = ny
+      off.height = nx
+      off.getContext('2d')!.putImageData(img, 0, 0)
+      ctx.imageSmoothingEnabled = true
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+      ctx.drawImage(off, 0, 0, canvasWidth, canvasHeight)
+      if (expanded) drawCourt(ctx, canvasWidth, canvasHeight)
+
+      for (const p of players) {
+        const px = (p.y / 94) * canvasWidth
+        const py = (1 - (p.x + 25) / 50) * canvasHeight
+        const profile = getPlayerProfile(p.id)
+        ctx.beginPath()
+        ctx.arc(px, py, expanded ? 7 : 5, 0, Math.PI * 2)
+        ctx.fillStyle = p.squad === 'blue' ? '#fdb927' : '#c4ced4'
+        ctx.fill()
+        ctx.lineWidth = expanded ? 3 : 2
+        ctx.strokeStyle = p.team === 'offense' ? '#40dfff' : '#ff4d32'
+        ctx.stroke()
+        ctx.fillStyle = '#071019'
+        ctx.font = `800 ${expanded ? 10 : 8}px Inter, sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(profile?.shortName.slice(0, 2).toUpperCase() ?? p.id.slice(-2), px, py + 0.5)
       }
     }
 
-    const off = document.createElement('canvas')
-    off.width = ny
-    off.height = nx
-    off.getContext('2d')!.putImageData(img, 0, 0)
-    ctx.imageSmoothingEnabled = true
-    ctx.clearRect(0, 0, width, height)
-    ctx.drawImage(off, 0, 0, width, height)
-    if (expanded) drawCourt(ctx, width, height)
-
-    for (const p of players) {
-      const px = (p.y / 94) * width
-      const py = (1 - (p.x + 25) / 50) * height
-      const profile = getPlayerProfile(p.id)
-      ctx.beginPath()
-      ctx.arc(px, py, expanded ? 7 : 5, 0, Math.PI * 2)
-      ctx.fillStyle = p.squad === 'blue' ? '#fdb927' : '#c4ced4'
-      ctx.fill()
-      ctx.lineWidth = expanded ? 3 : 2
-      ctx.strokeStyle = p.team === 'offense' ? '#40dfff' : '#ff4d32'
-      ctx.stroke()
-      ctx.fillStyle = '#071019'
-      ctx.font = `800 ${expanded ? 10 : 8}px Inter, sans-serif`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(profile?.shortName.slice(0, 2).toUpperCase() ?? p.id.slice(-2), px, py + 0.5)
+    if (!mobile) {
+      draw()
+      return
     }
-  }, [players, mode, kernel, width, height, expanded])
+
+    const now = performance.now()
+    const minInterval = 80
+    const wait = Math.max(0, minInterval - (now - lastDraw.current))
+    const timer = window.setTimeout(() => {
+      lastDraw.current = performance.now()
+      draw()
+    }, wait)
+    return () => window.clearTimeout(timer)
+  }, [players, mode, kernel, canvasWidth, canvasHeight, expanded, mobile])
 
   return (
     <div className={`heatmap-panel ${expanded ? 'expanded' : 'inset'}`}>
       <div className="heatmap-label">2D NET ADVANTAGE</div>
-      <canvas ref={ref} width={width} height={height} />
+      <canvas ref={ref} width={canvasWidth} height={canvasHeight} />
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 
-export type CameraPreset = 'top' | 'sideline'
+export type CameraPreset = 'top' | 'sideline' | 'portrait'
 
 const PRESETS: Record<CameraPreset, { position: THREE.Vector3; target: THREE.Vector3; up: THREE.Vector3 }> = {
   top: {
@@ -19,9 +19,21 @@ const PRESETS: Record<CameraPreset, { position: THREE.Vector3; target: THREE.Vec
     target: new THREE.Vector3(0, 47, 2),
     up: new THREE.Vector3(0, 0, 1),
   },
+  portrait: {
+    // Closer top-down framing for portrait phones.
+    position: new THREE.Vector3(0, 47, 78),
+    target: new THREE.Vector3(0, 47, 4),
+    up: new THREE.Vector3(-1, 0, 0),
+  },
 }
 
-export function CameraRig({ preset }: { preset: CameraPreset }) {
+export function CameraRig({
+  preset,
+  mobile = false,
+}: {
+  preset: CameraPreset
+  mobile?: boolean
+}) {
   const { camera } = useThree()
   const controls = useRef<OrbitControlsImpl>(null)
   const transitioning = useRef(true)
@@ -56,12 +68,17 @@ export function CameraRig({ preset }: { preset: CameraPreset }) {
       ref={controls}
       target={[0, 47, 0]}
       enableDamping
-      dampingFactor={0.055}
-      minDistance={30}
-      maxDistance={240}
+      dampingFactor={mobile ? 0.08 : 0.055}
+      enablePan={!mobile}
+      minDistance={mobile ? 38 : 30}
+      maxDistance={mobile ? 160 : 240}
       minPolarAngle={Math.PI * 0.04}
       maxPolarAngle={Math.PI * 0.48}
       screenSpacePanning={false}
+      touches={{
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN,
+      }}
       onStart={() => {
         transitioning.current = false
       }}

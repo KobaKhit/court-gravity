@@ -573,44 +573,164 @@ html, body, #root {
   font-weight: 800;
 }
 
+.mobile-scorechip {
+  display: none;
+}
+
 @media (max-width: 760px) {
+  .overlay-title {
+    left: max(12px, env(safe-area-inset-left));
+    top: max(10px, env(safe-area-inset-top));
+    max-width: calc(100vw - 150px);
+  }
+
   .overlay-title p,
   .legend,
   .scorebug,
-  .possession-label,
-  .camera-presets {
+  .possession-label {
     display: none;
+  }
+
+  .overlay-title h1 {
+    font-size: 1.35rem;
+  }
+
+  .mobile-scorechip {
+    position: absolute;
+    top: max(10px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 14;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    max-width: min(210px, 48vw);
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #c5d2de;
+    background: rgba(5, 9, 15, 0.82);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(14px);
+    font-size: 0.62rem;
+    font-weight: 750;
+  }
+
+  .mobile-scorechip strong {
+    color: #f4f8fb;
+  }
+
+  .mobile-scorechip em {
+    color: #ffb43e;
+    font-style: normal;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mobile-scorechip small {
+    width: 100%;
+    color: #8091a1;
+    font-size: 0.5rem;
+    letter-spacing: 0.04em;
+  }
+
+  .camera-presets {
+    left: max(12px, env(safe-area-inset-left));
+    top: auto;
+    bottom: calc(118px + env(safe-area-inset-bottom));
+  }
+
+  .camera-presets button {
+    min-height: 36px;
+    min-width: 52px;
+    padding: 8px 12px;
+    font-size: 0.68rem;
   }
 
   .overlay-actions {
     top: auto;
-    bottom: 68px;
-    right: 12px;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: calc(118px + env(safe-area-inset-bottom));
     left: auto;
     width: auto;
+    max-width: calc(100vw - 140px);
     transform: none;
     justify-content: flex-end;
     flex-wrap: wrap;
   }
 
-  .explainer-modal {
-    padding: 12px;
+  .about-link {
+    min-height: 36px;
+    padding: 8px 12px;
+    font-size: 0.62rem;
   }
 
   .playback-controls {
-    right: 12px;
-    bottom: 12px;
-    left: 12px;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
     min-width: 0;
     transform: none;
+    padding: 6px;
   }
 
-  .overlay-title h1 {
-    font-size: 1.8rem;
+  .playback-controls button {
+    min-height: 40px;
+    min-width: 52px;
+    padding: 10px 12px;
+    font-size: 0.72rem;
   }
 
-  .player-profile-copy span,
-  .player-profile-copy em {
+  .disclaimer {
+    left: max(12px, env(safe-area-inset-left));
+    bottom: calc(68px + env(safe-area-inset-bottom));
+    max-width: min(220px, 52vw);
+    font-size: 0.5rem;
+  }
+
+  .heatmap-panel.inset {
+    top: calc(58px + env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    bottom: auto;
+    width: min(168px, 42vw);
+    padding: 5px;
+  }
+
+  .app-shell.is-mobile .heatmap-panel.inset {
+    display: none;
+  }
+
+  .explainer-modal {
+    padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+      max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    align-items: end;
+  }
+
+  .explainer-panel {
+    width: 100%;
+    border-radius: 14px 14px 10px 10px;
+  }
+
+  .explainer-panel-header {
+    padding: 12px 14px;
+  }
+
+  .explainer-panel-header button {
+    min-height: 40px;
+    padding: 10px 14px;
+    font-size: 0.68rem;
+  }
+
+  .explainer-video {
+    max-height: min(62dvh, 480px);
+  }
+
+  .player-portrait {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+  }
+
+  .player-profile-copy {
     display: none;
   }
 }
@@ -1580,6 +1700,10 @@ html, body, #root {
   justify-self: end;
 }
 
+.about-mobile-chapters {
+  display: none;
+}
+
 .about-header-actions button {
   padding: 6px 9px;
   border: 1px solid rgba(83, 216, 255, 0.16);
@@ -1863,14 +1987,78 @@ html, body, #root {
     display: none;
   }
 
+  .about-mobile-chapters {
+    position: sticky;
+    top: 64px;
+    z-index: 18;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(5, 8, 12, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .about-mobile-chapters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .about-mobile-chapters button {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 7px;
+    align-items: center;
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    color: #8ea1b2;
+    background: rgba(8, 13, 20, 0.84);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 750;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .about-mobile-chapters button i {
+    color: #5edfff;
+    font-style: normal;
+    font-weight: 850;
+  }
+
+  .about-mobile-chapters button.active {
+    color: #eef8ff;
+    border-color: rgba(94, 223, 255, 0.4);
+    background: rgba(28, 113, 151, 0.22);
+  }
+
+  .about-header {
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+
   .about-scroll-intro,
   .about-chapter,
   .about-scroll-outro {
-    min-height: calc(100vh - 64px);
+    min-height: calc(100dvh - 120px);
   }
 
   .about-chapter {
     padding: 42px 18px;
+  }
+
+  .meaning-callouts {
+    grid-template-columns: 1fr;
+  }
+
+  .field-lab {
+    height: min(280px, 52vw);
   }
 }
 
@@ -1880,7 +2068,14 @@ html, body, #root {
   }
 
   .about-header-actions button {
-    font-size: 0.46rem;
+    min-height: 40px;
+    padding: 10px 12px;
+    font-size: 0.58rem;
+  }
+
+  .about-back {
+    min-height: 40px;
+    padding: 10px 12px;
   }
 
   .chapter-heading {
@@ -1893,6 +2088,14 @@ html, body, #root {
   }
 
   .about-chapter .about-visual {
-    min-height: 330px;
+    min-height: 280px;
+  }
+
+  .about-control {
+    gap: 10px;
+  }
+
+  .about-control input {
+    min-height: 28px;
   }
 }
