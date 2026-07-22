@@ -53,29 +53,27 @@ Manim Community needs compatible `moderngl` wheels (Python 3.11/3.12 recommended
 py -3.12 -m venv .venv-manim
 .venv-manim\Scripts\python.exe -m pip install -e ".[video,dev,preview]"
 .venv-manim\Scripts\manim.exe -ql manim_video/full_explainer.py CourtGravityExplainer
+# copy draft → data/storyboard/court_gravity_manim_draft.mp4
 ```
 
-Other scenes:
+Other scenes (lab / demos, not the production film):
 
 ```bash
 manim -ql manim_video/scenes.py GravityCourtStatic
 manim -ql manim_video/storyboard.py MassModulation
 ```
 
-Use `-qk --renderer=opengl` for higher quality.
+Use `-qh --fps 30` for the website cut (or `-qk --renderer=opengl` for a higher-quality local review).
 
-Without Manim, use the matplotlib / Pillow preview path:
+Without Manim, use the matplotlib / Pillow **abbreviated 6-beat** preview (story reel only — not the 12-chapter film):
 
 ```bash
 python manim_video/render_matplotlib.py
-# frames → data/storyboard/
+# regenerable frames → data/storyboard/ (gitignored)
 
 pip install -e ".[preview]"
 python manim_video/render_explainer_preview.py
 # GIF → data/storyboard/court_gravity_explainer_preview.gif
-
-python manim_video/render_explainer_preview.py \
-  --mp4 data/storyboard/court_gravity_explainer_preview.mp4
 ```
 
 ### Narration (timed VO)
@@ -84,11 +82,12 @@ The long-form essay in `manim_video/NARRATION.md` is denser than the ~4-minute d
 
 ```bash
 pip install -e ".[narration]"
-python scripts/build_narration.py analyze      # word budgets vs section windows
-python scripts/build_narration.py synthesize # Edge TTS (Andrew, -5%) → wavs
-python scripts/build_narration.py mux        # stitch + mux onto manim draft
-# or:
-python scripts/build_narration.py all
+python scripts/build_narration.py analyze
+# Prefer reusing expensive ElevenLabs/Edge mp3 sources:
+python scripts/build_narration.py synthesize --reuse-clips
+python scripts/build_narration.py mux
+# Review frames / glyph leaks:
+python scripts/review_explainer_frames.py --video data/storyboard/court_gravity_manim_draft.mp4
 ```
 
 Default Edge voice is `en-US-AndrewNeural` at `-5%`. Alternatives: `--voice en-US-BrianNeural` or `--voice en-US-ChristopherNeural`.
@@ -103,8 +102,12 @@ python scripts/build_narration.py all --engine elevenlabs --voice Daniel
 
 Outputs (gitignored):
 
+- `data/storyboard/narration/clips/*.mp3` (preserve these)
 - `data/storyboard/narration/court_gravity_narration.wav`
 - `data/storyboard/narration/court_gravity_with_narration.mp4`
+- `data/storyboard/review/` contact sheets
+
+After mux, copy the narrated file to `web/public/videos/court_gravity_explainer.mp4` for the site.
 
 Optional OpenAI voices:
 
@@ -117,7 +120,8 @@ python scripts/build_narration.py synthesize --engine openai --voice verse
 
 ```bash
 python scripts/ship.py
-# or: generate_data → sync_web_assets → render_matplotlib → npm run build
+# generate_data → sync_web_assets → pytest → npm run build
+# (matplotlib storyboard / Manim film are separate video workflows)
 ```
 
 Static web deploy is configured for Render (`render.yaml`):
@@ -126,6 +130,14 @@ Static web deploy is configured for Render (`render.yaml`):
 - Build: `npm install && npm run build`
 - Publish: `dist`
 - Auto-deploys on push to `master`
+
+Published media kept in git:
+
+- `web/public/videos/court_gravity_explainer.mp4`
+- `docs/court-gravity-preview.gif` (live-site README capture; regenerate with `node scripts/capture_readme_gif.mjs`)
+- `web/public/court-gravity-preview.gif` (same GIF, served for Open Graph / Twitter link previews)
+
+Everything else under `data/storyboard/` (matplotlib stills, Manim drafts, narration WAVs/muxes, review contact sheets) and `media/` (Manim caches) is regenerable and gitignored. Prefer `--reuse-clips` so expensive ElevenLabs MP3 sources stay local without re-synthesis. `scripts/ship.py` does not regenerate video-review media.
 
 Optional Blender bake: `blender --background --python blender/bake_heightmaps.py`.
 

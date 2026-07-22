@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 """Render a lightweight animated preview of the full explainer.
 
-This renderer intentionally needs no Manim or FFmpeg. It uses the same NumPy
-field core as the product and writes a GIF through Pillow:
+This is an **abbreviated 6-beat story reel** for motion/story review only.
+It is not a 1:1 stand-in for the 12-block Manim film in ``full_explainer.py``.
 
     .venv\\Scripts\\python.exe manim_video\\render_explainer_preview.py
-
-Use the GIF for story and motion review; use ``full_explainer.py`` for the
-high-quality final render.
 """
 
 from __future__ import annotations

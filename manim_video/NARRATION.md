@@ -14,9 +14,10 @@ from `full_explainer.py`, coda padded to the rendered draft).
 ```bash
 pip install -e ".[narration]"
 python scripts/build_narration.py analyze      # word budgets vs windows
-python scripts/build_narration.py synthesize # Edge TTS (free) → wav clips
+# Prefer reusing expensive source mp3 clips:
+python scripts/build_narration.py synthesize --reuse-clips
 python scripts/build_narration.py mux        # stitch + mux onto draft mp4
-# or: python scripts/build_narration.py all
+# or: python scripts/build_narration.py all --reuse-clips
 ```
 
 Optional OpenAI voices: `python scripts/build_narration.py synthesize --engine openai --voice verse`

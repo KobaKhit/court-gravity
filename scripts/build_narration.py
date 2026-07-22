@@ -297,10 +297,13 @@ def synthesize(
     eleven_stability: float = 0.58,
     eleven_similarity: float = 0.82,
     eleven_style: float = 0.12,
+    reuse_clips: bool = False,
 ) -> int:
     ensure_dirs()
     sections = cues["sections"]
     print(f"Synthesizing {len(sections)} sections with {engine} ({voice})...")
+    if reuse_clips:
+        print("  --reuse-clips: keeping existing .mp3 source files when present")
 
     async def run_all_edge() -> None:
         for section in sections:
@@ -308,6 +311,10 @@ def synthesize(
             mp3 = CLIPS_DIR / f"{sid}.mp3"
             wav = CLIPS_DIR / f"{sid}.wav"
             text = section["spoken"].strip()
+            if reuse_clips and mp3.exists():
+                print(f"  {sid} (reuse mp3)")
+                mp3_to_wav(mp3, wav)
+                continue
             print(f"  {sid}")
             await edge_tts_section(text, mp3, voice=voice, rate=rate)
             mp3_to_wav(mp3, wav)
@@ -319,6 +326,10 @@ def synthesize(
             sid = section["id"]
             mp3 = CLIPS_DIR / f"{sid}.mp3"
             wav = CLIPS_DIR / f"{sid}.wav"
+            if reuse_clips and mp3.exists():
+                print(f"  {sid} (reuse mp3)")
+                mp3_to_wav(mp3, wav)
+                continue
             print(f"  {sid}")
             openai_tts_section(section["spoken"].strip(), mp3, voice=voice, model=openai_model)
             mp3_to_wav(mp3, wav)
@@ -328,6 +339,10 @@ def synthesize(
             mp3 = CLIPS_DIR / f"{sid}.mp3"
             wav = CLIPS_DIR / f"{sid}.wav"
             text = section["spoken"].strip()
+            if reuse_clips and mp3.exists():
+                print(f"  {sid} (reuse mp3)")
+                mp3_to_wav(mp3, wav)
+                continue
             prev = sections[i - 1]["spoken"].strip() if i > 0 else None
             nxt = sections[i + 1]["spoken"].strip() if i + 1 < len(sections) else None
             print(f"  {sid}")
@@ -447,6 +462,32 @@ def stitch_timeline(cues: dict) -> Path:
     return out_wav
 
 
+def probe_duration(ff: str, path: Path) -> float:
+    cmd = [
+        ff,
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        str(path),
+    ]
+    # Prefer ffprobe when bundled next to ffmpeg; fall back to parsing ffmpeg -i.
+    probe = Path(ff).with_name(Path(ff).name.replace("ffmpeg", "ffprobe"))
+    if "ffmpeg" in Path(ff).name.lower() and probe.exists():
+        out = subprocess.check_output([str(probe), *cmd[1:]], text=True).strip()
+        return float(out)
+    result = subprocess.run([ff, "-i", str(path)], capture_output=True, text=True)
+    for line in result.stderr.splitlines():
+        if "Duration:" in line:
+            # Duration: HH:MM:SS.xx,
+            stamp = line.split("Duration:")[1].split(",")[0].strip()
+            h, m, s = stamp.split(":")
+            return int(h) * 3600 + int(m) * 60 + float(s)
+    raise RuntimeError(f"Could not probe duration for {path}")
+
+
 def mux(cues: dict, video: Path, out_video: Path | None = None) -> Path:
     narration = stitch_timeline(cues)
     if out_video is None:
@@ -454,12 +495,37 @@ def mux(cues: dict, video: Path, out_video: Path | None = None) -> Path:
     if not video.exists():
         raise SystemExit(f"Video not found: {video}")
     ff = ffmpeg_exe()
-    # Replace any existing audio; keep video stream.
+    target = float(cues.get("video_target_s", cues["sections"][-1]["end"]))
+    video_dur = probe_duration(ff, video)
+    # If the silent render is short, freeze the last frame so A/V hit the target
+    # instead of truncating narration with -shortest.
+    work_video = video
+    padded = OUT_DIR / "_tmp_video_pad.mp4"
+    if video_dur + 0.05 < target:
+        pad_s = target - video_dur
+        print(f"Video is {video_dur:.2f}s; freezing last frame for {pad_s:.2f}s to reach {target:.2f}s")
+        pad_cmd = [
+            ff,
+            "-y",
+            "-i",
+            str(video),
+            "-vf",
+            f"tpad=stop_mode=clone:stop_duration={pad_s:.3f}",
+            "-an",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(padded),
+        ]
+        subprocess.run(pad_cmd, check=True, capture_output=True)
+        work_video = padded
+    # Replace any existing audio; keep video stream; exact target length.
     cmd = [
         ff,
         "-y",
         "-i",
-        str(video),
+        str(work_video),
         "-i",
         str(narration),
         "-c:v",
@@ -468,7 +534,8 @@ def mux(cues: dict, video: Path, out_video: Path | None = None) -> Path:
         "aac",
         "-b:a",
         "192k",
-        "-shortest",
+        "-t",
+        f"{target:.3f}",
         "-map",
         "0:v:0",
         "-map",
@@ -476,6 +543,15 @@ def mux(cues: dict, video: Path, out_video: Path | None = None) -> Path:
         str(out_video),
     ]
     subprocess.run(cmd, check=True, capture_output=True)
+    if padded.exists():
+        padded.unlink(missing_ok=True)
+    # Remove ephemeral probe / padding leftovers if present.
+    probe = CLIPS_DIR / "_probe.mp3"
+    if probe.exists():
+        probe.unlink()
+    tmp_dir = OUT_DIR / "_tmp_pad"
+    if tmp_dir.exists():
+        shutil.rmtree(tmp_dir, ignore_errors=True)
     print(f"Muxed -> {out_video}")
     return out_video
 
@@ -498,6 +574,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--eleven-stability", type=float, default=0.58)
     parser.add_argument("--eleven-similarity", type=float, default=0.82)
     parser.add_argument("--eleven-style", type=float, default=0.12)
+    parser.add_argument(
+        "--reuse-clips",
+        action="store_true",
+        help="Reuse existing section .mp3 files (no re-TTS); remake fitted .wav only",
+    )
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args(argv)
 
@@ -518,6 +599,7 @@ def main(argv: list[str] | None = None) -> int:
         eleven_stability=args.eleven_stability,
         eleven_similarity=args.eleven_similarity,
         eleven_style=args.eleven_style,
+        reuse_clips=args.reuse_clips,
     )
 
     cues = load_cues(args.cues)

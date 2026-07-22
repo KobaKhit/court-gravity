@@ -88,7 +88,7 @@ def _player_motion_paths(
     z: float = 0.08,
     dashed: bool = False,
 ) -> VGroup:
-    """Court-projected paths for players that move between two states."""
+    """Court-projected 3D paths for players that move between two states."""
     previous = {player.id: player for player in before}
     paths = VGroup()
     for player in after:
@@ -96,15 +96,19 @@ def _player_motion_paths(
         if start is None or np.allclose((start.x, start.y), (player.x, player.y)):
             continue
         color = BLUE_C if player.team == "offense" else RED_C
-        line = Line(
-            _to_scene(start.x, start.y, z),
-            _to_scene(player.x, player.y, z),
-            color=color,
-            stroke_width=2.2,
-        )
+        p0 = _to_scene(start.x, start.y, z)
+        p1 = _to_scene(player.x, player.y, z)
         if dashed:
-            line = DashedVMobject(line, num_dashes=10, dashed_ratio=0.55)
-        paths.add(line)
+            # Short Line3D segments stay depth-correct under camera motion.
+            segments = VGroup()
+            steps = 10
+            for i in range(0, steps, 2):
+                a = p0 + (p1 - p0) * (i / steps)
+                b = p0 + (p1 - p0) * ((i + 1) / steps)
+                segments.add(Line3D(a, b, color=color, thickness=0.01))
+            paths.add(segments)
+        else:
+            paths.add(Line3D(p0, p1, color=color, thickness=0.012))
     return paths
 
 

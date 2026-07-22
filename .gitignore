@@ -16,6 +16,17 @@ data/synthetic/
 *.mp4
 !web/public/**/*.mp4
 data/storyboard/narration/
+data/storyboard/review/
+data/storyboard/anim_*.png
+data/storyboard/tilt_*.png
+data/storyboard/0[1-6]_*.png
+data/storyboard/marble.png
+data/storyboard/court_gravity_explainer_*.gif
+data/storyboard/court_gravity_explainer_*.mp4
+data/storyboard/manim_*.png
+data/storyboard/manim_*.log
+data/storyboard/court_gravity_manim_*.mp4
+data/storyboard/_tmp_*.mp4
 .env
 .DS_Store
 docs/gif-frames/

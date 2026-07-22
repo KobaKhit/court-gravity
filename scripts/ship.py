@@ -23,16 +23,18 @@ def main() -> None:
     run([str(PY), "scripts/parity_check.py"])
     run([str(PY), "scripts/generate_data.py"])
     run([str(PY), "scripts/sync_web_assets.py"])
-    run([str(PY), "manim_video/render_matplotlib.py"])
     run([str(PY), "-m", "pytest", "-q"])
     run(["npm", "run", "build"], cwd=ROOT / "web")
     print("\nShip artifacts:")
     print(f"  Web build:       {ROOT / 'web' / 'dist'}")
-    print(f"  Storyboard:      {ROOT / 'data' / 'storyboard'}")
+    print(f"  Public video:    {ROOT / 'web' / 'public' / 'videos' / 'court_gravity_explainer.mp4'}")
+    print(f"  README GIF:      {ROOT / 'docs' / 'court-gravity-preview.gif'}")
     print(f"  Synthetic data:  {ROOT / 'data' / 'synthetic'}")
     print(f"  Parity report:   {ROOT / 'data' / 'parity' / 'report.json'}")
     print(f"  Blender script:  {ROOT / 'blender' / 'bake_heightmaps.py'}")
-    print("\nPreview web: cd web && npm run preview")
+    print("\nVideo film (separate): manim full_explainer.py → build_narration.py mux")
+    print("  (ship does not regenerate storyboard/review media or the Manim film)")
+    print("Preview web: cd web && npm run preview")
 
 
 if __name__ == "__main__":
