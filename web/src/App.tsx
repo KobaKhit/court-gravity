@@ -169,7 +169,6 @@ export default function App() {
     <main className="app-shell">
       <Leva collapsed oneLineLabels />
       <div className="overlay-title">
-        <div className="eyebrow">LIVE SPATIAL ANALYTICS</div>
         <h1>COURT <span>GRAVITY</span></h1>
         <p>See how every player bends space, pulls defenders, and creates the next open shot.</p>
       </div>
