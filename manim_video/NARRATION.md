@@ -4,6 +4,25 @@ Target length: approximately four minutes at 140–150 words per minute. Read
 calmly and leave the marked visual transformations room to finish. Section
 names match `full_explainer.py`.
 
+## Timed VO (use this for production)
+
+The essay below is the long-form script. It is denser than the ~245s Manim
+draft, so production voiceover uses the condensed `spoken` lines in
+[`narration_cues.json`](narration_cues.json) (section start/end times derived
+from `full_explainer.py`, coda padded to the rendered draft).
+
+```bash
+pip install -e ".[narration]"
+python scripts/build_narration.py analyze      # word budgets vs windows
+python scripts/build_narration.py synthesize # Edge TTS (free) → wav clips
+python scripts/build_narration.py mux        # stitch + mux onto draft mp4
+# or: python scripts/build_narration.py all
+```
+
+Optional OpenAI voices: `python scripts/build_narration.py synthesize --engine openai --voice verse`
+
+Output lands in `data/storyboard/narration/` (gitignored).
+
 ## Cold open
 
 Most basketball analysis treats the court as flat.

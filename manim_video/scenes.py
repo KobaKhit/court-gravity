@@ -19,10 +19,13 @@ from core.field import FieldMode, Player, court_surface, integrate_marble
 
 COURT = load_court_config()
 SCALE = 0.12  # feet → Manim units
+# Center the half-court at the origin so angled cameras frame it evenly.
+X_CENTER = 0.5 * sum(COURT.x_extent)
+Y_CENTER = 0.5 * sum(COURT.y_extent)
 
 
 def _to_scene(x: float, y: float, z: float = 0.0) -> np.ndarray:
-    return np.array([x * SCALE, y * SCALE, z * SCALE])
+    return np.array([(x - X_CENTER) * SCALE, (y - Y_CENTER) * SCALE, z * SCALE])
 
 
 def _surface_from_players(
@@ -31,6 +34,8 @@ def _surface_from_players(
     mode: FieldMode = FieldMode.NET,
     resolution: tuple[int, int] = (40, 40),
     z_scale: float = 1.0,
+    fill_opacity: float = 0.92,
+    stroke_opacity: float = 0.14,
 ) -> Surface:
     if os.environ.get("COURT_GRAVITY_DRAFT") == "1":
         resolution = (min(resolution[0], 20), min(resolution[1], 16))
@@ -46,27 +51,24 @@ def _surface_from_players(
         u_range=[x0, x1],
         v_range=[y0, y1],
         resolution=resolution,
-        fill_opacity=0.92,
+        fill_opacity=fill_opacity,
         checkerboard_colors=False,
     )
-    axes = ThreeDAxes(
-        x_range=[x0 * SCALE, x1 * SCALE, 5 * SCALE],
-        y_range=[y0 * SCALE, y1 * SCALE, 5 * SCALE],
-        z_range=[-0.5, 0.4, 0.2],
-    )
-    try:
-        surf.set_fill_by_value(
-            axes=axes,
-            colorscale=[
-                (BLUE_E, -0.4),
-                (BLUE_D, -0.15),
-                (BLACK, 0.0),
-                (RED_D, 0.15),
-                (RED_B, 0.4),
-            ],
-        )
-    except Exception:
-        surf.set_fill_by_checkerboard(BLUE_E, BLUE_D, opacity=0.9)
+    # Surface points are expressed directly in scene coordinates rather than
+    # through ``ThreeDAxes.c2p``. Color each patch from its actual signed
+    # height so the map remains vivid and correct across Manim versions.
+    neutral = ManimColor("#151A20")
+    for patch in surf:
+        field_height = float(patch.get_center()[2] / SCALE)
+        strength = min(1.0, abs(field_height) / 1.35)
+        if field_height < -0.012:
+            color = interpolate_color(neutral, BLUE_C, 0.25 + strength * 0.75)
+        elif field_height > 0.012:
+            color = interpolate_color(neutral, RED_C, 0.25 + strength * 0.75)
+        else:
+            color = neutral
+        patch.set_fill(color, opacity=fill_opacity)
+        patch.set_stroke(color, width=0.25, opacity=stroke_opacity)
     return surf
 
 
@@ -77,6 +79,33 @@ def _player_dots(players: list[Player]) -> VGroup:
         d = Dot3D(point=_to_scene(p.x, p.y, 0.05), color=color, radius=0.06)
         dots.add(d)
     return dots
+
+
+def _player_motion_paths(
+    before: list[Player],
+    after: list[Player],
+    *,
+    z: float = 0.08,
+    dashed: bool = False,
+) -> VGroup:
+    """Court-projected paths for players that move between two states."""
+    previous = {player.id: player for player in before}
+    paths = VGroup()
+    for player in after:
+        start = previous.get(player.id)
+        if start is None or np.allclose((start.x, start.y), (player.x, player.y)):
+            continue
+        color = BLUE_C if player.team == "offense" else RED_C
+        line = Line(
+            _to_scene(start.x, start.y, z),
+            _to_scene(player.x, player.y, z),
+            color=color,
+            stroke_width=2.2,
+        )
+        if dashed:
+            line = DashedVMobject(line, num_dashes=10, dashed_ratio=0.55)
+        paths.add(line)
+    return paths
 
 
 class GravityCourtStatic(ThreeDScene):
