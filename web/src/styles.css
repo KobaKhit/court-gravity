@@ -233,13 +233,14 @@ html, body, #root {
 
 .overlay-actions {
   position: absolute;
-  top: 20px;
-  left: calc(50% + 158px);
+  top: 104px;
+  left: 50%;
   right: auto;
   z-index: 14;
   display: flex;
   gap: 8px;
   align-items: center;
+  transform: translateX(-50%);
 }
 
 .explainer-link span {
@@ -566,7 +567,8 @@ html, body, #root {
   .overlay-actions {
     top: 8px;
     right: 10px;
-    left: 10px;
+    left: auto;
+    transform: none;
     justify-content: flex-end;
     flex-wrap: wrap;
   }
