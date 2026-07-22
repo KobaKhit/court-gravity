@@ -21,6 +21,7 @@ export default function App() {
   const [page, setPage] = useState<'court' | 'about'>(() =>
     typeof window !== 'undefined' && window.location.hash === '#about' ? 'about' : 'court',
   )
+  const [showExplainer, setShowExplainer] = useState(false)
 
   const controls = useControls('Field', {
     defense: { value: 0.55, min: 0, max: 1, step: 0.01 },
@@ -51,6 +52,15 @@ export default function App() {
   })
 
   useEffect(() => {
+    if (!showExplainer) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowExplainer(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showExplainer])
+
+  useEffect(() => {
     const syncPage = () => setPage(window.location.hash === '#about' ? 'about' : 'court')
     window.addEventListener('hashchange', syncPage)
     window.addEventListener('popstate', syncPage)
@@ -61,7 +71,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!isPlaying || page === 'about') return
+    if (!isPlaying || page === 'about' || showExplainer) return
     let raf = 0
     let last = performance.now()
     const loop = (now: number) => {
@@ -75,7 +85,7 @@ export default function App() {
     }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [isPlaying, playbackRate, page])
+  }, [isPlaying, playbackRate, page, showExplainer])
 
   const game = useMemo(() => gameStateAtTime(t, controls.sigma), [t, controls.sigma])
   const players = useMemo(
@@ -192,15 +202,48 @@ export default function App() {
           Sideline
         </button>
       </div>
-      <button
-        className="about-link"
-        onClick={() => {
-          window.location.hash = 'about'
-          setPage('about')
-        }}
-      >
-        How it works <span>→</span>
-      </button>
+      <div className="overlay-actions">
+        <button className="about-link explainer-link" onClick={() => setShowExplainer(true)}>
+          Watch explainer <span>▶</span>
+        </button>
+        <button
+          className="about-link"
+          onClick={() => {
+            window.location.hash = 'about'
+            setPage('about')
+          }}
+        >
+          How it works <span>→</span>
+        </button>
+      </div>
+      {showExplainer && (
+        <div
+          className="explainer-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Court Gravity explainer video"
+          onClick={() => setShowExplainer(false)}
+        >
+          <div className="explainer-panel" onClick={(event) => event.stopPropagation()}>
+            <div className="explainer-panel-header">
+              <div>
+                <div className="eyebrow">FOUR-MINUTE EXPLAINER</div>
+                <strong>Court Gravity</strong>
+              </div>
+              <button type="button" onClick={() => setShowExplainer(false)} aria-label="Close explainer">
+                Close
+              </button>
+            </div>
+            <video
+              className="explainer-video"
+              src={`${import.meta.env.BASE_URL}videos/court_gravity_explainer.mp4`}
+              controls
+              autoPlay
+              playsInline
+            />
+          </div>
+        </div>
+      )}
       <div className="playback-controls">
         <button onClick={() => setIsPlaying((playing) => !playing)}>{isPlaying ? 'Pause' : 'Play'}</button>
         <button onClick={() => setPlaybackRate((rate) => (rate === 1 ? 0.5 : 1))}>{playbackRate}×</button>

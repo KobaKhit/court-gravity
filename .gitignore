@@ -14,4 +14,7 @@ data/parity/
 data/synthetic/
 .manim/
 *.mp4
+!web/public/**/*.mp4
+data/storyboard/narration/
+.env
 .DS_Store

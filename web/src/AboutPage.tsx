@@ -38,6 +38,7 @@ const STEPS = [
 export function AboutPage({ onBack }: { onBack: () => void }) {
   const [activeStep, setActiveStep] = useState(0)
   const [playing, setPlaying] = useState(true)
+  const [showExplainer, setShowExplainer] = useState(false)
   const [sigma, setSigma] = useState(5)
   const [defenderDistance, setDefenderDistance] = useState(3.5)
   const [teammateDistance, setTeammateDistance] = useState(9)
@@ -91,9 +92,38 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
         </div>
         <div className="about-header-actions">
           <span className="about-season">{PROFILE_SEASON} MODEL</span>
+          <button onClick={() => setShowExplainer(true)}>Watch explainer</button>
           <button onClick={() => setPlaying((value) => !value)}>{playing ? 'Pause motion' : 'Play motion'}</button>
         </div>
       </header>
+      {showExplainer && (
+        <div
+          className="explainer-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Court Gravity explainer video"
+          onClick={() => setShowExplainer(false)}
+        >
+          <div className="explainer-panel" onClick={(event) => event.stopPropagation()}>
+            <div className="explainer-panel-header">
+              <div>
+                <div className="eyebrow">FOUR-MINUTE EXPLAINER</div>
+                <strong>Court Gravity</strong>
+              </div>
+              <button type="button" onClick={() => setShowExplainer(false)} aria-label="Close explainer">
+                Close
+              </button>
+            </div>
+            <video
+              className="explainer-video"
+              src={`${import.meta.env.BASE_URL}videos/court_gravity_explainer.mp4`}
+              controls
+              autoPlay
+              playsInline
+            />
+          </div>
+        </div>
+      )}
 
       <div className="about-scroll-layout">
         <aside className="about-scroll-rail" aria-label="Story progress">
