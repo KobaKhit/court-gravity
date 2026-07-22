@@ -4,6 +4,12 @@ import { getPlayerProfile, gravityRatings, headshotUrl, PROFILE_SEASON } from '.
 
 const STEPS = [
   {
+    label: 'Meaning',
+    title: 'What “gravity” means here',
+    summary:
+      'Gravity is a pedagogical metaphor for how much attention and help a player forces — not literal physics, and not the proprietary NBA Gravity metric.',
+  },
+  {
     label: 'Inputs',
     title: 'Stats become gravity',
     summary: 'Season production establishes every player’s baseline influence.',
@@ -39,6 +45,7 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
   const [activeStep, setActiveStep] = useState(0)
   const [playing, setPlaying] = useState(true)
   const [showExplainer, setShowExplainer] = useState(false)
+  const [pullStrength, setPullStrength] = useState(1.15)
   const [sigma, setSigma] = useState(5)
   const [defenderDistance, setDefenderDistance] = useState(3.5)
   const [teammateDistance, setTeammateDistance] = useState(9)
@@ -171,12 +178,13 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
               </div>
 
               <div className="about-visual">
-                {index === 0 && <StatsVisual />}
-                {index === 1 && <KernelVisual sigma={sigma} pulse={pulse} />}
-                {index === 2 && (
+                {index === 0 && <GravityMeaningVisual pull={pullStrength} pulse={pulse} />}
+                {index === 1 && <StatsVisual />}
+                {index === 2 && <KernelVisual sigma={sigma} pulse={pulse} />}
+                {index === 3 && (
                   <CancellationVisual distance={defenderDistance} pulse={pulse} advantage={coverageQuality} />
                 )}
-                {index === 3 && (
+                {index === 4 && (
                   <SpacingVisual
                     defenderDistance={defenderDistance}
                     teammateDistance={teammateDistance}
@@ -184,12 +192,23 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
                     pulse={pulse}
                   />
                 )}
-                {index === 4 && <LifecycleVisual game={game} />}
-                {index === 5 && <PossessionVisual time={demoTime} />}
+                {index === 5 && <LifecycleVisual game={game} />}
+                {index === 6 && <PossessionVisual time={demoTime} />}
               </div>
 
               <div className="about-interaction">
-                {index === 1 && (
+                {index === 0 && (
+                  <Control
+                    label="How hard the player pulls help"
+                    value={pullStrength}
+                    min={0.35}
+                    max={1.85}
+                    step={0.05}
+                    suffix="×"
+                    onChange={setPullStrength}
+                  />
+                )}
+                {index === 2 && (
                   <Control
                     label="Influence radius (σ)"
                     value={sigma}
@@ -200,7 +219,7 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
                     onChange={setSigma}
                   />
                 )}
-                {index === 2 && (
+                {index === 3 && (
                   <Control
                     label="Defender separation"
                     value={defenderDistance}
@@ -211,7 +230,7 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
                     onChange={setDefenderDistance}
                   />
                 )}
-                {index === 3 && (
+                {index === 4 && (
                   <>
                     <Control
                       label="Defender separation"
@@ -233,7 +252,7 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
                     />
                   </>
                 )}
-                {(index === 4 || index === 5) && (
+                {(index === 5 || index === 6) && (
                   <Control
                     label="Possession time"
                     value={demoTime}
@@ -248,7 +267,17 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
 
               <div className="about-insight">
                 <span>EXECUTIVE READOUT</span>
-                <p>{insightFor(index, sigma, defenderDistance, teammateDistance, opportunity, game.phase)}</p>
+                <p>
+                  {insightFor(
+                    index,
+                    pullStrength,
+                    sigma,
+                    defenderDistance,
+                    teammateDistance,
+                    opportunity,
+                    game.phase,
+                  )}
+                </p>
               </div>
             </section>
           ))}
@@ -262,6 +291,98 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
         </div>
       </div>
     </main>
+  )
+}
+
+function GravityMeaningVisual({ pull, pulse }: { pull: number; pulse: number }) {
+  const wellDepth = 28 + pull * 52
+  const ridgeHeight = 22 + pull * 38
+  const wellBottom = 150 + wellDepth
+  const ridgeTop = 150 - ridgeHeight
+  const surface = [
+    `M 40 150`,
+    `C 120 150, 160 ${150 + wellDepth * 0.15}, 220 ${wellBottom}`,
+    `S 300 150, 380 150`,
+    `C 450 150, 490 ${ridgeTop}, 560 ${ridgeTop}`,
+    `S 650 150, 720 150`,
+    `L 760 150`,
+  ].join(' ')
+
+  return (
+    <div className="gravity-meaning">
+      <svg viewBox="0 0 800 280" role="img" aria-label="Gravity as attention wells and defensive ridges">
+        <defs>
+          <linearGradient id="wellFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgba(53, 220, 255, 0)" />
+            <stop offset="100%" stopColor="rgba(53, 220, 255, 0.35)" />
+          </linearGradient>
+          <linearGradient id="ridgeFill" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stopColor="rgba(255, 74, 45, 0)" />
+            <stop offset="100%" stopColor="rgba(255, 74, 45, 0.32)" />
+          </linearGradient>
+        </defs>
+
+        <line x1="40" y1="150" x2="760" y2="150" className="meaning-flat" />
+        <text x="48" y="138" className="meaning-flat-label">
+          flat box-score court
+        </text>
+
+        <path
+          d={`M 160 150 C 190 ${150 + wellDepth * 0.2}, 200 ${wellBottom}, 220 ${wellBottom} S 250 ${150 + wellDepth * 0.2}, 300 150 Z`}
+          fill="url(#wellFill)"
+          opacity={0.75 + pulse * 0.2}
+        />
+        <path
+          d={`M 480 150 C 510 ${ridgeTop}, 530 ${ridgeTop}, 560 ${ridgeTop} S 610 150, 640 150 Z`}
+          fill="url(#ridgeFill)"
+          opacity={0.72 + pulse * 0.18}
+        />
+
+        <path d={surface} className="meaning-surface" />
+
+        <g transform="translate(220 150)">
+          <circle r="14" className="meaning-offense-dot" />
+          <text y="4" className="meaning-player-label">
+            O
+          </text>
+          <text y={wellDepth + 28} className="meaning-caption blue">
+            offensive well
+          </text>
+          <text y={wellDepth + 46} className="meaning-subcaption">
+            pulls help &amp; attention
+          </text>
+        </g>
+
+        <g transform="translate(560 150)">
+          <circle r="14" className="meaning-defense-dot" />
+          <text y="4" className="meaning-player-label">
+            D
+          </text>
+          <text y={-ridgeHeight - 28} className="meaning-caption red">
+            defensive ridge
+          </text>
+          <text y={-ridgeHeight - 10} className="meaning-subcaption">
+            denies angles &amp; space
+          </text>
+        </g>
+
+        <g className="meaning-legend" transform="translate(48 214)">
+          <text>Blue sinks = costly to ignore</text>
+          <text y="18">Red rises = pressure that removes opportunity</text>
+        </g>
+      </svg>
+
+      <div className="meaning-callouts">
+        <article>
+          <span>IS</span>
+          <p>A continuous map of who forces decisions on the floor right now.</p>
+        </article>
+        <article>
+          <span>IS NOT</span>
+          <p>Shot probability alone, literal bent floorboards, or the proprietary NBA Gravity metric.</p>
+        </article>
+      </div>
+    </div>
   )
 }
 
@@ -543,22 +664,29 @@ function Control({
 
 function insightFor(
   step: number,
+  pull: number,
   sigma: number,
   defenderDistance: number,
   teammateDistance: number,
   opportunity: number,
   phase: string,
 ) {
-  if (step === 0) return 'The model explains why Dončić pulls the defense farther while Wembanyama changes more space defensively.'
-  if (step === 1)
-    return `At σ ${sigma.toFixed(1)}, influence is ${sigma > 6 ? 'broad and scheme-level' : sigma < 4 ? 'tight and matchup-specific' : 'balanced between matchup and help responsibilities'}.`
+  if (step === 0)
+    return pull > 1.35
+      ? 'High gravity means ignoring that player becomes expensive — help arrives earlier because the cost of being late is high.'
+      : pull < 0.7
+        ? 'Low gravity leaves a flatter floor: fewer forced rotations and less scheme-level attention.'
+        : 'Gravity here means influence on decisions — valleys pull help; ridges remove space. The rest of the model just measures that continuously.'
+  if (step === 1) return 'The model explains why Dončić pulls the defense farther while Wembanyama changes more space defensively.'
   if (step === 2)
+    return `At σ ${sigma.toFixed(1)}, influence is ${sigma > 6 ? 'broad and scheme-level' : sigma < 4 ? 'tight and matchup-specific' : 'balanced between matchup and help responsibilities'}.`
+  if (step === 3)
     return defenderDistance < 3.5
       ? 'Close coverage nearly cancels the offensive field, leaving a neutral contested zone.'
       : 'As separation grows, local defensive influence falls and blue advantage becomes visible.'
-  if (step === 3)
+  if (step === 4)
     return `Defender space and teammate spacing combine to a ${Math.round(opportunity * 100)}% opportunity signal; crowding at ${teammateDistance.toFixed(1)} ft can suppress an otherwise open look.`
-  if (step === 4) return `${phase} is active. Field envelopes interpolate continuously so phase changes never pop or teleport.`
+  if (step === 5) return `${phase} is active. Field envelopes interpolate continuously so phase changes never pop or teleport.`
   return 'This example uses the production state machine, player ratings, spacing checks, and lifecycle envelopes—not a separate animation.'
 }
 
